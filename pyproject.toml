@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idefics3-parity"
+version = "0.1.0"
+description = "Parity validation suite for FMS Idefics3 implementation"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "FMS Team"}
+]
+dependencies = [
+    "torch>=2.1.0",
+    "transformers>=4.35.0",
+    "pillow",
+    "numpy",
+    "requests",
+    "accelerate",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[project.scripts]
+test-parity = "test_parity:main"
+
+[tool.setuptools]
+py-modules = ["test_parity"]

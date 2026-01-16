@@ -56,8 +56,8 @@ pip install -e .
 
 # 2. Clone this repo (or use it as a subdirectory)
 cd ..
-git clone <this-repo>
-cd idefics3-parity
+git clone <this-repo> hf-fms-parity
+cd hf-fms-parity
 
 # 3. Install parity suite dependencies
 pip install -e .
@@ -86,6 +86,9 @@ python test_parity.py --fms-path /path/to/foundation-model-stack --phase all
 
 # Choose a different HF checkpoint (default: HuggingFaceTB/SmolVLM-256M-Instruct)
 python test_parity.py --checkpoint HuggingFaceTB/SmolVLM-256M-Instruct --phase all
+
+# Pin to a specific HF revision (tag/branch/SHA) for long-term reproducibility
+python test_parity.py --checkpoint HuggingFaceTB/SmolVLM-256M-Instruct --hf-revision <rev> --phase all
 
 # Customize tolerances
 # Note: some phases use tuned, explicit tolerances; --atol/--rtol are defaults used where a phase does not override them.

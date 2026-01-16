@@ -40,10 +40,35 @@ def setup_fms_import(fms_path: str | None):
         ) from e
 
 
+def _resolve_checkpoint(checkpoint: str, hf_revision: str | None) -> tuple[str, str]:
+    """
+    Resolve a Hugging Face model ID (+ optional revision) to a local directory so that
+    HF and FMS load from the exact same snapshot.
+    """
+    # If the user already provided a local path, do not attempt any HF download.
+    if os.path.exists(checkpoint):
+        return str(Path(checkpoint).resolve()), str(Path(checkpoint).resolve())
+
+    label = checkpoint if hf_revision is None else f"{checkpoint}@{hf_revision}"
+    if hf_revision is None:
+        return checkpoint, label
+
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError as e:
+        raise ImportError(
+            "huggingface_hub is required for --hf-revision. Install with: pip install huggingface_hub"
+        ) from e
+
+    local_dir = snapshot_download(repo_id=checkpoint, revision=hf_revision)
+    return local_dir, label
+
+
 class ParityTester:
     def __init__(
         self,
         checkpoint_name: str,
+        checkpoint_label: str,
         device: str,
         seed: int,
         default_atol: float,
@@ -51,6 +76,7 @@ class ParityTester:
         max_new_tokens: int,
     ):
         self.checkpoint_name = checkpoint_name
+        self.checkpoint_label = checkpoint_label
         self.device = device
         self.seed = seed
         self.default_atol = default_atol
@@ -65,7 +91,7 @@ class ParityTester:
 
         print(f"\n{'='*80}")
         print("Initializing Parity Tester")
-        print(f"Checkpoint: {checkpoint_name}")
+        print(f"Checkpoint: {checkpoint_label}")
         print(f"Device: {device}")
         print(f"Seed: {seed}")
         print(f"Default tolerances: atol={default_atol:.2e}, rtol={default_rtol:.2e}")
@@ -400,6 +426,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--fms-path", type=str, default=None)
     ap.add_argument("--checkpoint", type=str, default="HuggingFaceTB/SmolVLM-256M-Instruct")
+    ap.add_argument(
+        "--hf-revision",
+        type=str,
+        default=None,
+        help="Optional HF git revision (tag/branch/SHA). If set, downloads a snapshot and loads HF+FMS from it.",
+    )
     ap.add_argument("--device", type=str, default="cpu", choices=["cpu", "cuda"])
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--atol", type=float, default=1e-5)
@@ -414,8 +446,10 @@ def main() -> int:
     args = ap.parse_args()
 
     setup_fms_import(args.fms_path)
+    checkpoint_path, checkpoint_label = _resolve_checkpoint(args.checkpoint, args.hf_revision)
     tester = ParityTester(
-        checkpoint_name=args.checkpoint,
+        checkpoint_name=checkpoint_path,
+        checkpoint_label=checkpoint_label,
         device=args.device,
         seed=args.seed,
         default_atol=args.atol,

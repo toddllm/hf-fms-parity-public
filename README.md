@@ -100,6 +100,18 @@ python verify_setup.py
 python test_parity.py --phase all
 ```
 
+### Layer-wise Debugging (HF ↔ FMS traces)
+
+When end-to-end outputs are wrong but the model runs, capture per-layer I/O traces and compare offline:
+
+```bash
+python layerwise_trace.py --impl hf --model <hf_id> --prompt "<prompt>" --out /tmp/hf.pkl --mode generate --first-pass-only
+python layerwise_trace.py --impl fms --variant <hf_id> --prompt "<prompt>" --out /tmp/fms.pkl --mode generate --first-pass-only
+
+# Create a simple prefix mapping JSON (HF module prefix -> FMS module prefix), then:
+python layerwise_compare.py --hf /tmp/hf.pkl --fms /tmp/fms.pkl --map /tmp/hf_to_fms_map.json --compare outputs --metric max_abs
+```
+
 ## Requirements
 
 - Python >= 3.8

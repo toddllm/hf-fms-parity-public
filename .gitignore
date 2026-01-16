@@ -45,3 +45,12 @@ htmlcov/
 # HuggingFace cache
 .cache/
 huggingface/
+
+# Local parity artifacts / scratch (kept out of repo for clean reviews)
+*.log
+scratch_*.py
+scratch_*.log
+parity_*.log
+*_keys.json
+*_mapped_keys.json
+*_param_names.json

@@ -28,8 +28,16 @@ python -m pip install -e .
 Then run against a local `foundation-model-stack` checkout (recommended):
 
 ```bash
-python verify_setup.py --fms-path /path/to/foundation-model-stack
-python test_parity.py --fms-path /path/to/foundation-model-stack --phase all --device cpu
+# This parity suite is intended to be run against the *review branch* in the toddllm FMS fork
+# (it may not be merged upstream yet).
+git clone git@github.com:toddllm/foundation-model-stack.git
+cd foundation-model-stack
+git checkout review/idefics3
+pip install -e .
+cd ..
+
+python verify_setup.py --fms-path ./foundation-model-stack
+python test_parity.py --fms-path ./foundation-model-stack --phase all --device cpu
 ```
 
 Notes:

@@ -9,6 +9,7 @@ without any hard-coded paths.
 import sys
 import os
 from pathlib import Path
+import argparse
 
 def test_fms_auto_detection():
     """Test that FMS can be auto-detected from pip install."""
@@ -29,23 +30,27 @@ def test_fms_auto_detection():
         print(f"❌ FAILED: {e}")
         return False
 
-def test_fms_imports():
+def test_fms_imports(fms_path: str | None):
     """Test that all FMS modules can be imported."""
     print("\n" + "="*70)
     print("TEST 2: FMS Module Imports")
     print("="*70)
     
     try:
-        from fms.models.idefics3.model import Idefics3FMSModel, Idefics3Config
-        from fms.models.idefics3.connector import Idefics3Connector
-        from fms.models.idefics3.preprocessing import SmolVLMPreprocessor
-        from fms.models.idefics3.hf_adapter import load_smolvlm_checkpoint
+        # Ensure we import the intended FMS checkout (if provided).
+        sys.path.insert(0, str(Path(__file__).parent))
+        import test_parity
+        test_parity.setup_fms_import(fms_path)
+
+        from fms.models.idefics3 import (
+            Idefics3,
+            Idefics3Config,
+            load_smolvlm_preprocessor,
+        )
         print("✅ PASSED: All FMS modules imported successfully")
-        print("   - Idefics3FMSModel")
+        print("   - Idefics3")
         print("   - Idefics3Config")
-        print("   - Idefics3Connector")
-        print("   - SmolVLMPreprocessor")
-        print("   - load_smolvlm_checkpoint")
+        print("   - load_smolvlm_preprocessor")
         return True
     except ImportError as e:
         print(f"❌ FAILED: {e}")
@@ -116,14 +121,26 @@ def test_dependencies():
         return False
 
 def main():
+    ap = argparse.ArgumentParser(description="Verify parity suite portability.")
+    ap.add_argument(
+        "--fms-path",
+        type=str,
+        default=None,
+        help="Optional path to a foundation-model-stack checkout (if not installed editable).",
+    )
+    args = ap.parse_args()
+
     print("\n" + "="*70)
     print("PORTABLE PARITY SUITE - VERIFICATION TEST")
     print("="*70)
     print("\nThis test verifies the suite works without hard-coded paths.")
     
     results = []
-    results.append(("FMS Auto-Detection", test_fms_auto_detection()))
-    results.append(("FMS Module Imports", test_fms_imports()))
+    if args.fms_path is None:
+        results.append(("FMS Auto-Detection", test_fms_auto_detection()))
+    else:
+        print("\nSkipping auto-detection (using --fms-path)")
+    results.append(("FMS Module Imports", test_fms_imports(args.fms_path)))
     results.append(("CLI Arguments", test_cli_args()))
     results.append(("Dependencies", test_dependencies()))
     

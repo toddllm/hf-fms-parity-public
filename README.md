@@ -1,6 +1,40 @@
 # Idefics3 Parity Validation Suite
 
-Portable, standalone test suite for validating bit-exact parity between the FMS `idefics3` implementation and the HuggingFace `SmolVLM` reference.
+Portable, standalone test suite for validating parity between the FMS `idefics3` implementation and the HuggingFace `SmolVLM` reference.
+
+What “parity” means here:
+- **Numerical parity within tolerance** for intermediate tensors/logits (via `torch.allclose`).
+- **Exact match** for greedy generation token IDs.
+
+## Reproducible quickstart (recommended)
+
+This parity suite is **sensitive to Hugging Face dependency versions**. For reproducible results, use a clean virtualenv and pin a known-good HF stack:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip wheel setuptools
+
+# Known-good versions (cleanroom validated)
+python -m pip install -U \
+  "transformers==4.51.3" \
+  "huggingface_hub==0.36.0" \
+  accelerate pillow numpy requests
+
+# Install this parity suite
+python -m pip install -e .
+```
+
+Then run against a local `foundation-model-stack` checkout (recommended):
+
+```bash
+python verify_setup.py --fms-path /path/to/foundation-model-stack
+python test_parity.py --fms-path /path/to/foundation-model-stack --phase all --device cpu
+```
+
+Notes:
+- This suite uses `AutoModelForVision2Seq` which is deprecated in newer Transformers releases; pinning helps avoid breaking API changes.
+- First run will download `HuggingFaceTB/SmolVLM-256M-Instruct` (~500MB) into your HF cache.
 
 ## Installation
 
@@ -42,8 +76,12 @@ python test_parity.py --phase generate
 # Specify custom FMS path (if not using pip install -e)
 python test_parity.py --fms-path /path/to/foundation-model-stack --phase all
 
+# Choose a different HF checkpoint (default: HuggingFaceTB/SmolVLM-256M-Instruct)
+python test_parity.py --checkpoint HuggingFaceTB/SmolVLM-256M-Instruct --phase all
+
 # Customize tolerances
-python test_parity.py --phase forward --atol 1e-6 --rtol 1e-5
+# Note: some phases use tuned, explicit tolerances; --atol/--rtol are defaults used where a phase does not override them.
+python test_parity.py --phase connector --atol 1e-6 --rtol 1e-5
 
 # Use GPU
 python test_parity.py --device cuda --phase all
@@ -60,22 +98,20 @@ python test_parity.py --seed 123 --phase all
 | Phase | Description | Tolerance |
 |-------|-------------|-----------|
 | `preprocessing` | Image preprocessing | atol=1e-6 |
-| `vision` | Vision encoder (SigLIP) | atol=1e-5 |
+| `vision` | Vision encoder (SigLIP) | atol=3e-4, rtol=3e-4 |
 | `connector` | Pixel-unshuffle + projection | atol=1e-5 |
-| `text` | Text backbone (Llama) | atol=1e-6 (embeds), atol=1e-4 (logits) |
-| `forward` | End-to-end forward pass | atol=1e-3 |
+| `forward` | End-to-end forward pass (last-token logits) | atol=5e-5, rtol=5e-5 |
 | `generate` | Text generation | Exact match (greedy) |
 | `all` | Run all of the above | - |
 
 ## Expected Results
 
-When run against the FMS implementation in the PR branch, all tests should **PASS** with bit-exact or near-exact parity:
+When run against the FMS implementation in the PR branch, all tests should **PASS** (within the phase tolerances above):
 
 ```
 ✅ PASSED: Preprocessing
 ✅ PASSED: Vision Encoder  
 ✅ PASSED: Connector
-✅ PASSED: Text Backbone
 ✅ PASSED: Forward Pass
 ✅ PASSED: Generation
 ```
@@ -94,10 +130,10 @@ The **first time** you run the parity suite, it will:
 Before running the full parity suite, verify your setup:
 ```bash
 # Quick verification (< 1 minute)
-python verify_setup.py
+python verify_setup.py --fms-path /path/to/foundation-model-stack
 
 # If all tests pass, proceed with parity
-python test_parity.py --phase all
+python test_parity.py --fms-path /path/to/foundation-model-stack --phase all
 ```
 
 ### Layer-wise Debugging (HF ↔ FMS traces)
@@ -147,6 +183,20 @@ idefics3-parity/
 If you see `ImportError: FMS not found`, either:
 1. Install FMS: `pip install -e /path/to/foundation-model-stack`
 2. Use `--fms-path`: `python test_parity.py --fms-path /path/to/foundation-model-stack`
+
+### Transformers / HF version drift
+If you see large parity deltas (especially in vision) or import errors involving `transformers.utils`, re-create your venv and pin the known-good versions:
+
+```bash
+python -m pip install -U "transformers==4.51.3" "huggingface_hub==0.36.0"
+```
+
+### Pytest import mode note (FMS repo)
+If you run the FMS unit tests in the same environment and see Triton/import-path collisions, prefer:
+
+```bash
+python -m pytest -q --import-mode=importlib tests/models/test_idefics3.py
+```
 
 ### GPU memory issues
 

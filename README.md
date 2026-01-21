@@ -226,6 +226,3 @@ If tests fail due to tolerance, you can adjust:
 python test_parity.py --phase forward --atol 1e-2 --rtol 1e-2
 ```
 
-## License
-
-Apache 2.0

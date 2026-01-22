@@ -112,6 +112,7 @@ python test_parity.py --seed 123 --phase all
 | `vision` | Vision encoder (SigLIP) | atol=3e-4, rtol=3e-4 |
 | `connector` | Pixel-unshuffle + projection | atol=1e-5 |
 | `forward` | End-to-end forward pass (last-token logits) | atol=5e-5, rtol=5e-5 |
+| `forward` (multi-image) | Multi-image forward pass | atol=7e-5, rtol=7e-5 |
 | `generate` | Text generation | Exact match (greedy) |
 | `all` | Run all of the above | - |
 

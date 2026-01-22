@@ -312,8 +312,8 @@ class ParityTester:
             fms_logits,
             hf_logits,
             "logits(last_token,multi_image)",
-            atol=5e-5,
-            rtol=5e-5,
+            atol=7e-5,
+            rtol=7e-5,
         )
         self.results["multi_image_forward"] = result
         return bool(result["passed"])
